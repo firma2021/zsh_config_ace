@@ -1,5 +1,5 @@
 
-function plugin-load
+function plugin_load
 {
   local repo plugdir initfile initfiles=()
   : ${ZSH_PLUGIN_DIR:=${ZSH_DOT_DIR:-~/.config/zsh}/plugins}
@@ -20,7 +20,7 @@ function plugin-load
   done
 }
 
-function plugin-update
+function plugin_update
 {
   ZSH_PLUGIN_DIR=${ZSH_PLUGIN_DIR:-$HOME/.config/zsh/plugins}
   for d in $ZSH_PLUGIN_DIR/*/.git(/); do
