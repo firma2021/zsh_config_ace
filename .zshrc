@@ -1,8 +1,6 @@
 autoload -U compaudit compinit
 autoload -U compinit && compinit
 
-export EDITOR="nvim"
-
 export ZSH_DOT_DIR="$HOME/.config/zsh"
 export ZSH_PLUGIN_DIR="$ZSH_DOT_DIR/plugins"
 
@@ -12,9 +10,6 @@ done
 
 source $HOME/.config/shell_scripts/greeting.sh
 
-fpath+=(${HOME}/.config/shell_scripts)
-autoload -U $fpath
-
 plugin_repos=(
   zsh-users/zsh-syntax-highlighting
   zsh-users/zsh-autosuggestions
@@ -23,8 +18,7 @@ plugin_repos=(
   Aloxaf/fzf-tab
 )
 
-# now load your plugins
-load_plugin $plugin_repos
+plugin_load $plugin_repos
 
 # export FZF_DEFAULT_OPTS=" \
 # --color=bg+:#ccd0da,bg:#eff1f5,spinner:#dc8a78,hl:#d20f39 \
