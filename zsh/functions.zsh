@@ -71,8 +71,8 @@ function hist()
 function mkcd()
 {
   # parents, 递归地创建目录，如果父目录不存在，自动创建
-  mkdir -p $1
-  cd $1
+  mkdir -p "$1"
+  cd $1 || exit
 }
 
 function note()
@@ -107,90 +107,6 @@ function sshf()
   ssh "$selected"
 }
 
-local green="\033[32m"
-local cyan="\033[36m"
-local reset="\033[0m"
-local red="\e[31m"
-local yellow="\033[33m"
-
-function get_git_info()
-{
-  local git_version='✘>﹏<✘'
-  if command -v git > /dev/null 2>&1; then
-    git_version=$(git --version | cut -d' ' -f3)
-  fi
-  echo "${green}git: $cyan$git_version$reset"
-}
-
-function get_c_info()
-{
-  local gcc_version='✘>﹏<✘'
-  if command -v gcc > /dev/null 2>&1; then
-    gcc_version=$(gcc --version | head -n 1 | cut -d' ' -f3)
-  fi
-  local clang_version='✘>﹏<✘'
-  if command -v clang > /dev/null 2>&1; then
-    clang_version=$(clang --version | head -n 1 | cut -d' ' -f3)
-  fi
-  echo "${green}gcc: $cyan$gcc_version ${green}clang: $cyan$clang_version$reset"
-}
-
-function get_python_info()
-{
-  local python_version='✘>﹏<✘'
-  if command -v python > /dev/null 2>&1; then
-    python_version=$(python --version 2>&1 | cut -d' ' -f2)
-  elif command -v python3 > /dev/null 2>&1; then
-    python_version=$(python --version 2>&1 | cut -d' ' -f2)
-  fi
-  local venv_info='✘>﹏<✘'
-  if [[ $VIRTUAL_ENV =~ "venv$" ]]; then
-    venv_info=${VIRTUAL_ENV:h:t}
-  elif [ -n "$VIRTUAL_ENV" ]; then
-    venv_info="${VIRTUAL_ENV:t}"
-  fi
-  echo "${green}python: $cyan$python_version ${green}virtual env: $cyan$venv_info$reset"
-}
-
-function get_go_info()
-{
-  local go_version='✘>﹏<✘'
-  if command -v go > /dev/null 2>&1; then
-    go_version=$(go version | cut -d' ' -f3)
-    go_version=${go_version/go/}
-  fi
-  echo "${green}go: $cyan$go_version$reset"
-}
-
-function dev_tools_info()
-{
-  get_git_info
-  get_c_info
-  get_python_info
-  get_go_info
-}
-
-function git_info()
-{
-  if [[ -z $(command git status --porcelain 2> /dev/null) ]]; then
-    echo "${red}The .git directory does not exist.$reset"
-    return
-  fi
-  echo "$cyan$(git branch --show-current 2> /dev/null)$reset"
-
-  local git_status
-  git_status=$(git status --porcelain 2> /dev/null | awk '{
-    if ($1 == "A") { $1 = "added" }
-    else if ($1 == "M") { $1 = "modified" }
-    else if ($1 == "R") { $1 = "renamed" }
-    else if ($1 == "??") { $1 = "untracked" }
-    else if ($1 == "D") { $1 = "deleted" }
-    print
-    }')
-  echo "${green}$git_status${reset}"
-
-}
-
 function loadavg()
 {
   if [[ ! -f "/proc/loadavg" ]]; then
@@ -216,11 +132,11 @@ function proxy_set()
 {
   local __user=$(
     read -p "username: "
-    echo ${REPLY}
+    echo "${REPLY}"
   )
   local __pass=$(
     read -sp "password: "
-    echo ${REPLY}
+    echo "${REPLY}"
   )
 
   # Deal with no newlines after `read -p`.
@@ -228,11 +144,11 @@ function proxy_set()
 
   local __serv=${1-$(
     read -p "server: "
-    echo ${REPLY}
+    echo "${REPLY}"
   )}
   local __prot=${2-$(
     read -p "protocol: "
-    echo ${REPLY}
+    echo "${REPLY}"
   )}
 
   # Create proxy url.

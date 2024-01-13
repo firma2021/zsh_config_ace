@@ -43,3 +43,23 @@ glll()
 {
   gitlog "%C(${hashColor})%h %C(${dateColor})%cd %C(${authorColor})%cn: %C(${contentColor})%s%Creset" "$1"
 }
+
+function git_info()
+{
+  if [[ -z $(command git status --porcelain 2> /dev/null) ]]; then
+    echo "${red}The .git directory does not exist.$reset"
+    return
+  fi
+  echo "$cyan$(git branch --show-current 2> /dev/null)$reset"
+
+  local git_status
+  git_status=$(git status --porcelain 2> /dev/null | awk '{
+    if ($1 == "A") { $1 = "added" }
+    else if ($1 == "M") { $1 = "modified" }
+    else if ($1 == "R") { $1 = "renamed" }
+    else if ($1 == "??") { $1 = "untracked" }
+    else if ($1 == "D") { $1 = "deleted" }
+    print
+    }')
+  echo "${green}$git_status${reset}"
+}
