@@ -106,7 +106,7 @@ loop()
 
   clear
   tput cup $((lines / 5)) 0
-  figlet -c -k -w "$columns" "Happy new year by $OWNER"
+  #   figlet -c -k -w "$columns" "Happy new year by $OWNER"
   tput cup 0 0
 
   length="${#fireworks_paths[@]}"
