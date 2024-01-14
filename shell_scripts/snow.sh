@@ -37,22 +37,7 @@ cleanup()
   echo -e "愿我们永远纯洁如雪 ✘╹◡╹✘"
   echo -e "May we always be as pure as snow."
 
-  echo -e "\033[0m"   # 重置颜色y
-  echo -e "\033[?25h" # 显示光标
-}
-
-init_display_process()
-{
-  trap cleanup EXIT
-
-  clear
-  terminal_rows=$(tput lines)
-  terminal_columns=$(tput cols)
-}
-
-init_io_process()
-{
-  echo -e "\033[?25l" # 隐藏光标
+  echo -n -e "\033[0m" # 重置颜色y
 }
 
 declare -A snowflakes # snowflakes[3]=5, 表示第 3 列上的雪花当前位于第 5 行
@@ -82,11 +67,47 @@ function move_snowflake()
   # 打印新的雪花
   generate_random_color
   set_cursor_position "${snowflakes[$i]}" "$i"
-  #   echo -n -e "\u274$((RANDOM % 6 + 3))"
   generate_random_flake
 
   lastflakes[$i]=${snowflakes[$i]}
   snowflakes[$i]=$((${snowflakes[$i]} + 1))
+}
+
+sleep_count=1
+inc_sleep_count()
+{
+  if ((sleep_count < 10)); then
+    sleep_count=$((sleep_count + 1))
+  fi
+}
+dec_sleep_count()
+{
+  if ((sleep_count > 1)); then
+    sleep_count=$((sleep_count - 1))
+  fi
+}
+pause_flag=false
+pause_display_process()
+{
+  pause_flag=true
+  while [[ $pause_flag ]]; do
+    sleep 1000
+  done
+}
+resume_display_process()
+{
+  pause_flag=false
+}
+init_display_process()
+{
+  trap cleanup EXIT # EXIT是特殊事件，不是信号
+  trap dec_sleep_count SIGUSR1
+  trap inc_sleep_count SIGUSR2
+  trap pause_display_process SIGPWR
+  trap resume_display_process SIGXFSZ
+  clear
+  terminal_rows=$(tput lines)
+  terminal_columns=$(tput cols)
 }
 
 snow_loop()
@@ -103,34 +124,77 @@ snow_loop()
       move_snowflake "$x"
     done
 
-    sleep 0.1
+    for ((i = 1; i <= sleep_count; i++)); do
+      sleep 0.1
+    done
   done
 }
 
-read_input()
+io_process_finish()
 {
-  local old_settings=$(stty -g)
+  stty "$old_terminal_attr" # 恢复终端设置
+  echo -n -e "\033[?25h"    # 显示光标
+}
+script_finish()
+{
+  kill QUIT "$bg_pid"
+  io_process_finish
+  exit 0
+}
+exit_io_process()
+{
+  exit 0
+}
+io_process_init()
+{
+  trap exit_io_process INT
+  trap exit_io_process QUIT
+  trap script_finish EXIT
+  old_terminal_attr=$(stty -g) # 保存终端属性
   stty -icanon -echo
-  while True; do
-    echo ""
-  done
-  bg_pid=$1
+  echo -n -e "\033[?25l" # 隐藏光标
+}
 
-  stty "$old_settings" # 恢复终端设置
+io_loop()
+{
+  bg_pid=$1
+  echo "$bg_pid"
+  io_process_init
+
+  local pause_flag=true
+  while true; do
+    read -n 1 key
+
+    if [[ $key == "q" || $key == $'\e' ]]; then
+      exit_io_process
+    elif [[ $key == "f" ]]; then
+      kill -SIGUSR1 "$bg_pid"
+    elif [[ $key == "s" ]]; then
+      kill -SIGUSR2 "$bg_pid"
+    elif [[ $key == " " ]]; then
+      pause_flag=!$pause_flag
+      if [[ $pause_flag ]]; then
+        kill -SIGPWR "$bg_pid"
+      else
+        kill -SIGXFSZ "$bg_pid"
+      fi
+    fi
+  done
+
 }
 
 VERSION="1.0.0"
 
-if [[ $1 == "--version" || $1 == "-v" ]]; then
+if [[ $# -gt 0 && ($1 == "--version" || $1 == "-v") ]]; then
   script_name="${0##*[\\/]}"
   script_name="${script_name%.sh}"
   echo "$script_name Version: $VERSION"
   exit 0
-elif [[ $1 == "--show" ]]; then
+elif [[ $# -gt 0 && $1 == "--show" ]]; then
   snow_loop
 else
-  echo "$0"
   bash "$0" --show & # 创建显示进程
-  echo "$!"
-  read_input $! # 当前进程接收用户的输入
+  echo $! 1 > temp.txt
+  io_loop $! # 当前进程接收用户的输入
+  echo $! 3 >> temp.txt
 fi
